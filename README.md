@@ -10,6 +10,9 @@ Use the config page to adjust which features you want from:
 
 - Show weekday/month
 - Show day of the month
-- Show dis/connected indicator (outer ring) (Basalt only)
+- Show dis/connected indicator
 - Show battery level
 - Show seconds hand
+- Show battery charging state
+
+![](screenshots/basalt-charging-1.png)

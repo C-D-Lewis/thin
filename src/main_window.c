@@ -12,7 +12,9 @@ static void bg_update_proc(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
   GPoint center = grect_center_point(&bounds);
 
-  int perc = battery_state_service_peek().charge_percent;
+  BatteryChargeState state = battery_state_service_peek();
+  bool plugged = state.is_plugged;
+  int perc = state.charge_percent;
   int batt_hours = (int)(12.0F * ((float)perc / 100.0F)) + 1;
 
   for(int h = 0; h < 12; h++) {
@@ -24,13 +26,36 @@ static void bg_update_proc(Layer *layer, GContext *ctx) {
         };
 
 #ifdef PBL_COLOR
-        if(h < batt_hours || !config_get(PERSIST_KEY_BATTERY)) {
-          graphics_context_set_stroke_color(ctx, GColorWhite);
+        if(config_get(PERSIST_KEY_BATTERY)) {
+          if(h < batt_hours) {
+            if(plugged) {
+              // Charging
+              graphics_context_set_stroke_color(ctx, GColorGreen);
+            } else {
+              // Discharging at this level
+              graphics_context_set_stroke_color(ctx, GColorWhite);
+            }
+          } else {
+            // Empty segment
+            graphics_context_set_stroke_color(ctx, GColorDarkGray);
+          }
         } else {
-          graphics_context_set_stroke_color(ctx, GColorDarkGray);
+          // No battery indicator
+          graphics_context_set_stroke_color(ctx, GColorWhite);
         }
 #else
-        graphics_context_set_stroke_color(ctx, GColorWhite);
+        if(config_get(PERSIST_KEY_BATTERY)) {
+          if(h < batt_hours) {
+            // Discharging at this level
+            graphics_context_set_stroke_color(ctx, GColorWhite);
+          } else {
+            // Empty segment
+            graphics_context_set_stroke_color(ctx, GColorBlack);
+          }
+        } else {
+          // No battery indicator
+          graphics_context_set_stroke_color(ctx, GColorWhite);
+        }
 #endif
 #if defined(ANTIALIASING) && defined(PBL_COLOR)
         graphics_draw_line_antialiased(ctx, GPoint(center.x + x, center.y + y), GPoint(point.x + x, point.y + y), GColorWhite);
@@ -147,6 +172,7 @@ static void draw_proc(Layer *layer, GContext *ctx) {
   graphics_fill_circle(ctx, GPoint(center.x + 1, center.y + 1), 4);
 #endif
 
+  // Draw black if disconnected
   if(config_get(PERSIST_KEY_BT) && !s_connected) {
 #if defined(ANTIALIASING) && defined(PBL_COLOR)
     graphics_fill_circle_antialiased(ctx, GPoint(center.x + 1, center.y + 1), 3, GColorBlack);
@@ -206,6 +232,10 @@ static void bt_handler(bool connected) {
   }
 
   s_connected = connected;
+  layer_mark_dirty(s_canvas_layer);
+}
+
+static void batt_handler(BatteryChargeState state) {
   layer_mark_dirty(s_canvas_layer);
 }
 
@@ -278,6 +308,9 @@ void main_window_push() {
     .unload = window_unload,
   });
   window_stack_push(s_main_window, true);
+
+  // TODO make charging pref
+  battery_state_service_subscribe(batt_handler);
 
   time_t t = time(NULL);
   struct tm *tm_now = localtime(&t);
