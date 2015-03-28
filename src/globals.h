@@ -2,7 +2,7 @@
 
 #include <pebble.h>
 
-// #define ANTIALIASING
+#define ANTIALIASING true
 
 // Layout
 #define MARGIN 5

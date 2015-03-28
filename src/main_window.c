@@ -12,6 +12,10 @@ static void bg_update_proc(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
   GPoint center = grect_center_point(&bounds);
 
+#ifdef PBL_PLATFORM_BASALT
+  graphics_context_set_antialiased(ctx, ANTIALIASING);
+#endif
+
   BatteryChargeState state = battery_state_service_peek();
   bool plugged = state.is_plugged;
   int perc = state.charge_percent;
@@ -57,11 +61,7 @@ static void bg_update_proc(Layer *layer, GContext *ctx) {
           graphics_context_set_stroke_color(ctx, GColorWhite);
         }
 #endif
-#if defined(ANTIALIASING) && defined(PBL_COLOR)
-        graphics_draw_line_antialiased(ctx, GPoint(center.x + x, center.y + y), GPoint(point.x + x, point.y + y), GColorWhite);
-#else
         graphics_draw_line(ctx, GPoint(center.x + x, center.y + y), GPoint(point.x + x, point.y + y));
-#endif
       }
     }
   }
@@ -81,6 +81,10 @@ static GPoint make_hand_point(int quantity, int intervals, int len, GPoint cente
 static void draw_proc(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
   GPoint center = grect_center_point(&bounds);
+
+#ifdef PBL_PLATFORM_BASALT
+  graphics_context_set_antialiased(ctx, ANTIALIASING);
+#endif
 
   Time now;
   if(s_animating) {
@@ -111,31 +115,28 @@ static void draw_proc(Layer *layer, GContext *ctx) {
   };
 
   // Draw hands
+#ifdef PBL_COLOR
+  graphics_context_set_stroke_color(ctx, GColorDarkGray);
+#elif PBL_BW 
+  graphics_context_set_stroke_color(ctx, GColorWhite);
+#endif
   for(int y = 0; y < THICKNESS; y++) {
     for(int x = 0; x < THICKNESS; x++) {
-#ifdef PBL_COLOR
-      graphics_context_set_stroke_color(ctx, GColorDarkGray);
-#elif PBL_BW 
-      graphics_context_set_stroke_color(ctx, GColorWhite);
-#endif
-#if defined(ANTIALIASING) && defined(PBL_COLOR)
-      graphics_draw_line_antialiased(ctx, GPoint(center.x + x, center.y + y), GPoint(minute_hand_short.x + x, minute_hand_short.y + y), GColorDarkGray);
-      graphics_draw_line_antialiased(ctx, GPoint(center.x + x, center.y + y), GPoint(hour_hand_short.x + x, hour_hand_short.y + y), GColorDarkGray);
-      graphics_context_set_stroke_color(ctx, GColorWhite);
-      graphics_draw_line_antialiased(ctx, GPoint(minute_hand_short.x + x, minute_hand_short.y + y), GPoint(minute_hand_long.x + x, minute_hand_long.y + y), GColorDarkGray);
-      graphics_draw_line_antialiased(ctx, GPoint(hour_hand_short.x + x, hour_hand_short.y + y), GPoint(hour_hand_long.x + x, hour_hand_long.y + y), GColorDarkGray);
-#else
       graphics_draw_line(ctx, GPoint(center.x + x, center.y + y), GPoint(minute_hand_short.x + x, minute_hand_short.y + y));
       graphics_draw_line(ctx, GPoint(center.x + x, center.y + y), GPoint(hour_hand_short.x + x, hour_hand_short.y + y));
-      graphics_context_set_stroke_color(ctx, GColorWhite);
+    }
+  }
+  graphics_context_set_stroke_color(ctx, GColorWhite);
+  for(int y = 0; y < THICKNESS; y++) {
+    for(int x = 0; x < THICKNESS; x++) {
       graphics_draw_line(ctx, GPoint(minute_hand_short.x + x, minute_hand_short.y + y), GPoint(minute_hand_long.x + x, minute_hand_long.y + y));
       graphics_draw_line(ctx, GPoint(hour_hand_short.x + x, hour_hand_short.y + y), GPoint(hour_hand_long.x + x, hour_hand_long.y + y));
-#endif
     }
   }
 
-  // Draw seconds hand
+  // Draw second hand
   if(config_get(PERSIST_KEY_SECOND_HAND)) {
+    // Use loops
     for(int y = 0; y < THICKNESS - 1; y++) {
       for(int x = 0; x < THICKNESS - 1; x++) {
 #ifdef PBL_COLOR
@@ -143,11 +144,7 @@ static void draw_proc(Layer *layer, GContext *ctx) {
 #elif PBL_BW
         graphics_context_set_stroke_color(ctx, GColorWhite);
 #endif
-#if defined(ANTIALIASING) && defined(PBL_COLOR)
-        graphics_draw_line_antialiased(ctx, GPoint(center.x + x, center.y + y), GPoint(second_hand_short.x + x, second_hand_short.y + y), GColorDarkCandyAppleRed);
-#else
         graphics_draw_line(ctx, GPoint(center.x + x, center.y + y), GPoint(second_hand_short.x + x, second_hand_short.y + y));
-#endif
 
         // Draw second hand tip
 #ifdef PBL_COLOR
@@ -155,31 +152,19 @@ static void draw_proc(Layer *layer, GContext *ctx) {
 #elif PBL_BW
         graphics_context_set_stroke_color(ctx, GColorWhite);
 #endif
-#if defined(ANTIALIASING) && defined(PBL_COLOR)
-        graphics_draw_line_antialiased(ctx, GPoint(second_hand_short.x + x, second_hand_short.y + y), GPoint(second_hand_long.x + x, second_hand_long.y + y), GColorChromeYellow);
-#else
         graphics_draw_line(ctx, GPoint(second_hand_short.x + x, second_hand_short.y + y), GPoint(second_hand_long.x + x, second_hand_long.y + y));
-#endif
       }
     }
   }
 
   // Center
   graphics_context_set_fill_color(ctx, GColorWhite);
-#if defined(ANTIALIASING) && defined(PBL_COLOR)
-  graphics_fill_circle_antialiased(ctx, GPoint(center.x + 1, center.y + 1), 4, GColorWhite);
-#else
   graphics_fill_circle(ctx, GPoint(center.x + 1, center.y + 1), 4);
-#endif
 
   // Draw black if disconnected
   if(config_get(PERSIST_KEY_BT) && !s_connected) {
-#if defined(ANTIALIASING) && defined(PBL_COLOR)
-    graphics_fill_circle_antialiased(ctx, GPoint(center.x + 1, center.y + 1), 3, GColorBlack);
-#else
     graphics_context_set_fill_color(ctx, GColorBlack);
     graphics_fill_circle(ctx, GPoint(center.x + 1, center.y + 1), 3);
-#endif
   }
 }
 
