@@ -31,20 +31,20 @@ static void tick_handler(struct tm *tick_time, TimeUnits changed) {
 /****************************** AnimationImplementation ***********************/
 
 static void animation_started(Animation *anim, void *context) {
-  // s_animating = true;
+  s_animating = true;
 }
 
 static void animation_stopped(Animation *anim, bool stopped, void *context) {
-  // s_animating = false;
+  s_animating = false;
 
-  // if(config_get(PERSIST_KEY_SECOND_HAND)) {
-  //   tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
-  // } else {
-  //   tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
-  // }  
+  if(config_get(PERSIST_KEY_SECOND_HAND)) {
+    tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
+  } else {
+    tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
+  }  
 
 #ifdef PBL_PLATFORM_APLITE
-  // animation_destroy(anim);
+  animation_destroy(anim);
 #endif
 }
 
@@ -336,7 +336,7 @@ void main_window_push() {
   }
 
   // Begin smooth animation
-  AnimationImplementation hands_impl = {
+  static AnimationImplementation hands_impl = {
     .update = hands_update
   };
   animate(ANIMATION_DURATION, ANIMATION_DELAY, &hands_impl, true);
