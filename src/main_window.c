@@ -8,6 +8,65 @@ static Time s_last_time, s_anim_time;
 static char s_weekday_buffer[8], s_month_buffer[8], s_day_in_month_buffer[3];
 static bool s_animating, s_connected;
 
+static void tick_handler(struct tm *tick_time, TimeUnits changed) {
+  s_last_time.days = tick_time->tm_mday;
+  s_last_time.hours = tick_time->tm_hour;
+  s_last_time.minutes = tick_time->tm_min;
+  s_last_time.seconds = tick_time->tm_sec;
+
+  s_last_time.hours -= (s_last_time.hours > 12) ? 12 : 0;
+
+  snprintf(s_day_in_month_buffer, sizeof(s_day_in_month_buffer), "%d", s_last_time.days);
+  strftime(s_weekday_buffer, sizeof(s_weekday_buffer), "%a", tick_time);
+  strftime(s_month_buffer, sizeof(s_month_buffer), "%b", tick_time);
+
+  text_layer_set_text(s_weekday_layer, s_weekday_buffer);
+  text_layer_set_text(s_day_in_month_layer, s_day_in_month_buffer);
+  text_layer_set_text(s_month_layer, s_month_buffer);
+
+  // Finally
+  layer_mark_dirty(s_canvas_layer);
+}
+
+/****************************** AnimationImplementation ***********************/
+
+static void animation_started(Animation *anim, void *context) {
+  s_animating = true;
+}
+
+static void animation_stopped(Animation *anim, bool stopped, void *context) {
+  s_animating = false;
+
+  if(config_get(PERSIST_KEY_SECOND_HAND)) {
+    tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
+  } else {
+    tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
+  }  
+
+#ifdef PBL_PLATFORM_APLITE
+  animation_destroy(anim);
+#endif
+}
+
+static void animate(int duration, int delay, AnimationImplementation *implementation, bool handlers) {
+  Animation *anim = animation_create();
+  if(anim) {
+    animation_set_duration(anim, duration);
+    animation_set_delay(anim, delay);
+    animation_set_curve(anim, AnimationCurveEaseInOut);
+    animation_set_implementation(anim, implementation);
+    if(handlers) {
+      animation_set_handlers(anim, (AnimationHandlers) {
+        .started = animation_started,
+        .stopped = animation_stopped
+      }, NULL);
+    }
+    animation_schedule(anim);
+  }
+}
+
+/****************************** Drawing Functions *****************************/
+
 static void bg_update_proc(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
   GPoint center = grect_center_point(&bounds);
@@ -78,30 +137,34 @@ static GPoint make_hand_point(int quantity, int intervals, int len, GPoint cente
   };
 }
 
+static int hours_to_minutes(int hours_out_of_12) {
+  return (int)(float)(((float)hours_out_of_12 / 12.0F) * 60.0F);
+}
+
 static void draw_proc(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
-  GPoint center = grect_center_point(&bounds);
+  GPoint center = grect_center_point(&bounds);  
 
 #ifdef PBL_PLATFORM_BASALT
   graphics_context_set_antialiased(ctx, ANTIALIASING);
 #endif
 
-  Time now;
-  if(s_animating) {
-    now = s_anim_time;
-  } else {
-    now = s_last_time;
-  }
+  Time mode_time = (s_animating) ? s_anim_time : s_last_time;
 
   // Plot hand ends
-  GPoint second_hand_long = make_hand_point(now.seconds, 60, HAND_LENGTH_SEC, center);
-  GPoint minute_hand_long = make_hand_point(now.minutes, 60, HAND_LENGTH_MIN, center);
-  GPoint second_hand_short = make_hand_point(now.seconds, 60, (HAND_LENGTH_SEC - MARGIN + 2), center);
-  GPoint minute_hand_short = make_hand_point(now.minutes, 60, (HAND_LENGTH_MIN - MARGIN + 2), center);
+  GPoint second_hand_long = make_hand_point(mode_time.seconds, 60, HAND_LENGTH_SEC, center);
+  GPoint minute_hand_long = make_hand_point(mode_time.minutes, 60, HAND_LENGTH_MIN, center);
+  GPoint second_hand_short = make_hand_point(mode_time.seconds, 60, (HAND_LENGTH_SEC - MARGIN + 2), center);
+  GPoint minute_hand_short = make_hand_point(mode_time.minutes, 60, (HAND_LENGTH_MIN - MARGIN + 2), center);
 
-  // Adjust for minutes through the hour
-  float minute_angle = TRIG_MAX_ANGLE * now.minutes / 60;
-  float hour_angle = TRIG_MAX_ANGLE * now.hours / 12;
+  float minute_angle = TRIG_MAX_ANGLE * mode_time.minutes / 60;
+  float hour_angle;
+  if(s_animating) {
+    // Hours out of 60 for smoothness
+    hour_angle = TRIG_MAX_ANGLE * mode_time.hours / 60;
+  } else {
+    hour_angle = TRIG_MAX_ANGLE * mode_time.hours / 12;
+  }
   hour_angle += (minute_angle / TRIG_MAX_ANGLE) * (TRIG_MAX_ANGLE / 12);
 
   // Hour is more accurate
@@ -166,48 +229,6 @@ static void draw_proc(Layer *layer, GContext *ctx) {
     graphics_context_set_fill_color(ctx, GColorBlack);
     graphics_fill_circle(ctx, GPoint(center.x + 1, center.y + 1), 3);
   }
-}
-
-static void anim_handler(void *context) {
-  bool changed = false;
-  s_last_time.hours -= (s_last_time.hours > 12) ? 12 : 0;
-  if(s_anim_time.hours < s_last_time.hours) {
-    s_anim_time.hours++;
-    changed = true;
-  }
-  if(s_anim_time.minutes < s_last_time.minutes) {
-    s_anim_time.minutes++;
-    changed = true;
-  }
-  if(s_anim_time.seconds < s_last_time.seconds) {
-    s_anim_time.seconds++;
-    changed = true;
-  }
-
-  if(changed) {
-    layer_mark_dirty(s_canvas_layer);
-    app_timer_register(ANIM_DELTA, anim_handler, NULL);
-  } else {
-    s_animating = false;
-  }
-}
-
-static void tick_handler(struct tm *tick_time, TimeUnits changed) {
-  s_last_time.days = tick_time->tm_mday;
-  s_last_time.hours = tick_time->tm_hour;
-  s_last_time.minutes = tick_time->tm_min;
-  s_last_time.seconds = tick_time->tm_sec;
-
-  snprintf(s_day_in_month_buffer, sizeof(s_day_in_month_buffer), "%d", s_last_time.days);
-  strftime(s_weekday_buffer, sizeof(s_weekday_buffer), "%a", tick_time);
-  strftime(s_month_buffer, sizeof(s_month_buffer), "%b", tick_time);
-
-  text_layer_set_text(s_weekday_layer, s_weekday_buffer);
-  text_layer_set_text(s_day_in_month_layer, s_day_in_month_buffer);
-  text_layer_set_text(s_month_layer, s_month_buffer);
-
-  // Finally
-  layer_mark_dirty(s_canvas_layer);
 }
 
 static void bt_handler(bool connected) {
@@ -279,13 +300,21 @@ static void window_unload(Window *window) {
   window_destroy(s_main_window);
 }
 
-void main_window_push() {
-  if(config_get(PERSIST_KEY_SECOND_HAND)) {
-    tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
-  } else {
-    tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
-  }
+static int anim_percentage(AnimationProgress dist_normalized, int max) {
+  return (int)(float)(((float)dist_normalized / (float)ANIMATION_NORMALIZED_MAX) * (float)max);
+}
 
+static void hands_update(Animation *anim, AnimationProgress dist_normalized) {
+  s_last_time.hours -= (s_last_time.hours > 12) ? 12 : 0;
+
+  s_anim_time.hours = anim_percentage(dist_normalized, hours_to_minutes(s_last_time.hours));
+  s_anim_time.minutes = anim_percentage(dist_normalized, s_last_time.minutes);
+  s_anim_time.seconds = anim_percentage(dist_normalized, s_last_time.seconds);
+
+  layer_mark_dirty(s_canvas_layer);
+}
+
+void main_window_push() {
   s_main_window = window_create();
   window_set_background_color(s_main_window, GColorBlack);
   window_set_window_handlers(s_main_window, (WindowHandlers) {
@@ -299,12 +328,18 @@ void main_window_push() {
 
   time_t t = time(NULL);
   struct tm *tm_now = localtime(&t);
-  tick_handler(tm_now, SECOND_UNIT);
-  s_animating = true;
-  app_timer_register(1000, anim_handler, NULL);
+  s_last_time.hours = tm_now->tm_hour;
+  s_last_time.minutes = tm_now->tm_min;
+  s_last_time.seconds = tm_now->tm_sec;  
 
   if(config_get(PERSIST_KEY_BT)) {
     bluetooth_connection_service_subscribe(bt_handler);
     bt_handler(bluetooth_connection_service_peek());
   }
+
+  // Begin smooth animation
+  static AnimationImplementation hands_impl = {
+    .update = hands_update
+  };
+  animate(ANIMATION_DURATION, ANIMATION_DELAY, &hands_impl, true);
 }
