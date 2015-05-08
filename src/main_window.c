@@ -305,6 +305,8 @@ static int anim_percentage(AnimationProgress dist_normalized, int max) {
 }
 
 static void hands_update(Animation *anim, AnimationProgress dist_normalized) {
+  s_last_time.hours -= (s_last_time.hours > 12) ? 12 : 0;
+
   s_anim_time.hours = anim_percentage(dist_normalized, hours_to_minutes(s_last_time.hours));
   s_anim_time.minutes = anim_percentage(dist_normalized, s_last_time.minutes);
   s_anim_time.seconds = anim_percentage(dist_normalized, s_last_time.seconds);
