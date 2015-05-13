@@ -1,4 +1,4 @@
-var VERSION = "1.1";
+var VERSION = "1.5";
 
 Pebble.addEventListener('ready', function(e) {
   console.log('PebbleKit JS ready!');

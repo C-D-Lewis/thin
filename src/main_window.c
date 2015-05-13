@@ -179,7 +179,7 @@ static void draw_proc(Layer *layer, GContext *ctx) {
 
   // Draw hands
 #ifdef PBL_COLOR
-  graphics_context_set_stroke_color(ctx, GColorDarkGray);
+  graphics_context_set_stroke_color(ctx, GColorLightGray);
 #elif PBL_BW 
   graphics_context_set_stroke_color(ctx, GColorWhite);
 #endif
