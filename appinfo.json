@@ -1,29 +1,29 @@
 {
-  "uuid": "09988afe-adbb-4941-a126-9b2c92aea311",
-  "shortName": "Thin",
-  "longName": "Thin",
-  "companyName": "Chris Lewis",
-  "versionCode": 6,
-  "versionLabel": "1.5",
-  "sdkVersion": "3",
-  "targetPlatforms": [
-    "aplite",
-    "basalt"
-  ],
-  "watchapp": {
-    "watchface": true
-  },
-  "appKeys": {
-    "PERSIST_KEY_DATE": 0,
-    "PERSIST_KEY_DAY": 1,
-    "PERSIST_KEY_BT": 2,
-    "PERSIST_KEY_BATTERY": 3,
-    "PERSIST_KEY_SECOND_HAND": 4
-  },
-  "resources": {
-    "media": []
-  },
-  "capabilities": [
-    "configurable"
-  ]
+    "appKeys": {
+        "PERSIST_KEY_BATTERY": 3,
+        "PERSIST_KEY_BT": 2,
+        "PERSIST_KEY_DATE": 0,
+        "PERSIST_KEY_DAY": 1,
+        "PERSIST_KEY_SECOND_HAND": 4
+    },
+    "capabilities": [
+        "configurable"
+    ],
+    "companyName": "Chris Lewis",
+    "longName": "Thin",
+    "projectType": "native",
+    "resources": {
+        "media": []
+    },
+    "sdkVersion": "3",
+    "shortName": "Thin",
+    "targetPlatforms": [
+        "aplite",
+        "basalt"
+    ],
+    "uuid": "09988afe-adbb-4941-a126-9b2c92aea311",
+    "versionLabel": "1.5",
+    "watchapp": {
+        "watchface": true
+    }
 }
