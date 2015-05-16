@@ -3,3 +3,5 @@
 build
 
 .lock-waf_darwin_build
+releases
+assets

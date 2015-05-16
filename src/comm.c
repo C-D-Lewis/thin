@@ -10,8 +10,6 @@ static void in_recv_handler(DictionaryIterator *iter, void *context) {
   // Refresh live store
   config_init();
   vibes_short_pulse();
-
-  window_stack_pop_all(true);
 }
 
 void comm_init() {

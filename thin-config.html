@@ -6,10 +6,7 @@
   <body>
     <h2>Thin Configuration</h2>
     <p>
-      Choose settings, click 'Save' and reload app. 
-    </p>
-    <p>
-      Settings will not be read back when you reload this page, so think of it as a menu.
+      Choose settings, click 'Save' and reload app to apply. 
     </p>
  
     <table>
@@ -36,6 +33,40 @@
     </p>
 
     <script>
+      function persistWrite(key, value) {
+        localStorage.setItem(key, value);
+      }
+
+      var persistRead = function(key, defaultValue) {
+        if(localStorage.getItem(key) === null) {
+          return defaultValue;
+        } else {
+          return localStorage.getItem(key);
+        }
+      };
+
+      function firstTimeSetup() {
+        if(!persistRead('first-time', false)) {
+          persistWrite('first-time', true);
+          console.log('This is the first launch!');
+
+          // Align with watchapp defaults
+          persistWrite('date', 'true');
+          persistWrite('day', 'true');
+          persistWrite('bluetooth', 'true');
+          persistWrite('battery', 'true');
+          persistWrite('second_hand', 'true');
+        }
+      }
+
+      function loadConfig() {
+        document.getElementById('check_date').checked = persistRead('date', 'false') === 'true';
+        document.getElementById('check_day').checked = persistRead('day', 'false') === 'true';
+        document.getElementById('check_bluetooth').checked = persistRead('bluetooth', 'false') === 'true';
+        document.getElementById('check_battery').checked = persistRead('battery', 'false') === 'true';
+        document.getElementById('check_second_hand').checked = persistRead('second_hand', 'false') === 'true';
+      }
+
       function ajax(url, type, callback) {
         var xhr = new XMLHttpRequest();
         xhr.onload = function () {
@@ -74,12 +105,20 @@
             'second_hand': document.getElementById('check_second_hand').checked ? 'true' : 'false'
           };  
           var location = 'pebblejs://close#' + encodeURIComponent(JSON.stringify(options));
-           
+
+          persistWrite('date', options.date);
+          persistWrite('day', options.day);
+          persistWrite('bluetooth', options.bluetooth);
+          persistWrite('battery', options.battery);
+          persistWrite('second_hand', options.second_hand);
+
           document.location = location;
         }, 
       false);
 
       getAppVersionAndNews();
+      firstTimeSetup();
+      loadConfig();
     </script>
   </body>
 </html>

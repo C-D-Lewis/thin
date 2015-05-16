@@ -1,7 +1,7 @@
-var VERSION = "1.5";
+var VERSION = "1.6";
 
 Pebble.addEventListener('ready', function(e) {
-  console.log('PebbleKit JS ready!');
+  console.log('PebbleKit JS ready! Version: ' + VERSION);
 });
 
 Pebble.addEventListener('showConfiguration', function(e) {

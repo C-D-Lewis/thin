@@ -3,8 +3,8 @@
   "shortName": "Thin",
   "longName": "Thin",
   "companyName": "Chris Lewis",
-  "versionCode": 6,
-  "versionLabel": "1.5",
+  "versionCode": 7,
+  "versionLabel": "1.6",
   "sdkVersion": "3",
   "targetPlatforms": [
     "aplite",
