@@ -15,6 +15,7 @@
       <tr><td>Show disconnected indicator</td><td><input id='check_bluetooth' type='checkbox'/></td></tr>
       <tr><td>Show battery level </td><td><input id='check_battery' type='checkbox'/></tr>
       <tr><td>Show second hand</td><td><input id='check_second_hand' type='checkbox'/></tr>
+      <tr><td>Longer hands, no markers</td><td><input id='check_no_markers' type='checkbox'/></tr>
     </table>
 
     <p>
@@ -56,6 +57,7 @@
           persistWrite('bluetooth', 'true');
           persistWrite('battery', 'true');
           persistWrite('second_hand', 'true');
+          persistWrite('no_markers', 'false');
         }
       }
 
@@ -65,6 +67,7 @@
         document.getElementById('check_bluetooth').checked = persistRead('bluetooth', 'false') === 'true';
         document.getElementById('check_battery').checked = persistRead('battery', 'false') === 'true';
         document.getElementById('check_second_hand').checked = persistRead('second_hand', 'false') === 'true';
+        document.getElementById('check_no_markers').checked = persistRead('no_markers', 'false') === 'true';
       }
 
       function ajax(url, type, callback) {
@@ -90,8 +93,26 @@
 
         //Get local
         var version = '' + document.location;
-        version = version.substring(version.indexOf('version=') + 'version='.length);
-        document.getElementById('current_version').innerHTML = 'Current version: ' + version;
+        var index = version.indexOf('version=');
+        if(index > 0) {
+          version = version.substring(index + 'version='.length);
+          document.getElementById('current_version').innerHTML = 'Current version: ' + version;
+        } else {
+          document.getElementById('current_version').innerHTML = 'Error determining local version. Running in the emulator?';
+        }
+      }
+
+      function getQueryParam(query, defaultValue) {
+        var query = location.search.substring(1);
+        var vars = query.split('&');
+        for (var i = 0; i < vars.length; i++) {
+          var pair = vars[i].split('=');
+          // If the query query parameter is found, decode it to use and return it for use
+          if (pair[0] === query) {
+            return decodeURIComponent(pair[1]);
+          }
+        }
+        return defaultValue || false;
       }
 
       var submitButton = document.getElementById('save_button');
@@ -102,17 +123,20 @@
             'day': document.getElementById('check_day').checked ? 'true' : 'false',
             'bluetooth': document.getElementById('check_bluetooth').checked ? 'true' : 'false',
             'battery': document.getElementById('check_battery').checked ? 'true' : 'false',
-            'second_hand': document.getElementById('check_second_hand').checked ? 'true' : 'false'
+            'second_hand': document.getElementById('check_second_hand').checked ? 'true' : 'false',
+            'no_markers': document.getElementById('check_no_markers').checked ? 'true' : 'false'
           };  
-          var location = 'pebblejs://close#' + encodeURIComponent(JSON.stringify(options));
 
           persistWrite('date', options.date);
           persistWrite('day', options.day);
           persistWrite('bluetooth', options.bluetooth);
           persistWrite('battery', options.battery);
           persistWrite('second_hand', options.second_hand);
+          persistWrite('no_markers', options.no_markers);
 
-          document.location = location;
+          // Set the return URL depending on the runtime environment
+          var return_to = getQueryParam('return_to', 'pebblejs://close#');
+          document.location = return_to + encodeURIComponent(JSON.stringify(options));
         }, 
       false);
 

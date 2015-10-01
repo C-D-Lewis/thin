@@ -1,5 +1,6 @@
 #include "config.h"
 
+// Cache for speed
 static bool s_arr[NUM_SETTINGS];
 
 void config_init() {

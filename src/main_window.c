@@ -71,6 +71,11 @@ static void bg_update_proc(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
   GPoint center = grect_center_point(&bounds);
 
+  if(config_get(PERSIST_KEY_NO_MARKERS)) { 
+    // Don't draw anything here
+    return;
+  }
+
   BatteryChargeState state = battery_state_service_peek();
   bool plugged = state.is_plugged;
   int perc = state.charge_percent;
@@ -136,11 +141,26 @@ static void draw_proc(Layer *layer, GContext *ctx) {
 
   Time mode_time = (s_animating) ? s_anim_time : s_last_time;
 
+  int len_sec = HAND_LENGTH_SEC;
+  int len_min = HAND_LENGTH_MIN;
+  int len_hour = HAND_LENGTH_HOUR;
+
+  // Longer when no markers?
+  if(config_get(PERSIST_KEY_NO_MARKERS)) { 
+    len_sec += 20;
+    len_min += 20;
+    len_hour += 20;
+  }
+
   // Plot hand ends
-  GPoint second_hand_long = make_hand_point(mode_time.seconds, 60, HAND_LENGTH_SEC, center);
-  GPoint minute_hand_long = make_hand_point(mode_time.minutes, 60, HAND_LENGTH_MIN, center);
-  GPoint second_hand_short = make_hand_point(mode_time.seconds, 60, (HAND_LENGTH_SEC - MARGIN + 2), center);
-  GPoint minute_hand_short = make_hand_point(mode_time.minutes, 60, (HAND_LENGTH_MIN - MARGIN + 2), center);
+  GPoint second_hand_long = make_hand_point(mode_time.seconds, 60, len_sec, center);
+  GPoint minute_hand_long = make_hand_point(mode_time.minutes, 60, len_min, center);
+
+  // Plot shorter overlaid hands
+  len_sec -= (MARGIN + 2);
+  len_min -= (MARGIN + 2);
+  GPoint second_hand_short = make_hand_point(mode_time.seconds, 60, len_sec, center);
+  GPoint minute_hand_short = make_hand_point(mode_time.minutes, 60, len_min, center);
 
   float minute_angle = TRIG_MAX_ANGLE * mode_time.minutes / 60;
   float hour_angle;
@@ -154,12 +174,15 @@ static void draw_proc(Layer *layer, GContext *ctx) {
 
   // Hour is more accurate
   GPoint hour_hand_long = (GPoint) {
-    .x = (int16_t)(sin_lookup(hour_angle) * (int32_t)HAND_LENGTH_HOUR / TRIG_MAX_RATIO) + center.x,
-    .y = (int16_t)(-cos_lookup(hour_angle) * (int32_t)HAND_LENGTH_HOUR / TRIG_MAX_RATIO) + center.y,
+    .x = (int16_t)(sin_lookup(hour_angle) * (int32_t)len_hour / TRIG_MAX_RATIO) + center.x,
+    .y = (int16_t)(-cos_lookup(hour_angle) * (int32_t)len_hour / TRIG_MAX_RATIO) + center.y,
   };
+
+  // Shorter hour overlay
+  len_hour -= (MARGIN + 2);
   GPoint hour_hand_short = (GPoint) {
-    .x = (int16_t)(sin_lookup(hour_angle) * (int32_t)(HAND_LENGTH_HOUR - MARGIN + 2) / TRIG_MAX_RATIO) + center.x,
-    .y = (int16_t)(-cos_lookup(hour_angle) * (int32_t)(HAND_LENGTH_HOUR - MARGIN + 2) / TRIG_MAX_RATIO) + center.y,
+    .x = (int16_t)(sin_lookup(hour_angle) * (int32_t)len_hour / TRIG_MAX_RATIO) + center.x,
+    .y = (int16_t)(-cos_lookup(hour_angle) * (int32_t)len_hour / TRIG_MAX_RATIO) + center.y,
   };
 
   // Draw hands
@@ -226,7 +249,7 @@ static void window_load(Window *window) {
   layer_set_update_proc(s_bg_layer, bg_update_proc);
   layer_add_child(window_layer, s_bg_layer);
 
-  int x = (int)((float)bounds.size.w * 0.625F);
+  int x = (int)((float)bounds.size.w * (config_get(PERSIST_KEY_NO_MARKERS) ? 0.68F : 0.625F));
 
   s_weekday_layer = text_layer_create(GRect(x, 55, 44, 40));
   text_layer_set_text_alignment(s_weekday_layer, GTextAlignmentCenter);
