@@ -15,7 +15,7 @@
       <tr><td>Show disconnected indicator</td><td><input id='check_bluetooth' type='checkbox'/></td></tr>
       <tr><td>Show battery level </td><td><input id='check_battery' type='checkbox'/></tr>
       <tr><td>Show second hand</td><td><input id='check_second_hand' type='checkbox'/></tr>
-      <tr><td>Longer hands, no markers</td><td><input id='check_no_markers' type='checkbox'/></tr>
+      <!-- <tr><td>Longer hands, no markers</td><td><input id='check_no_markers' type='checkbox'/></tr> -->
     </table>
 
     <p>
@@ -57,7 +57,7 @@
           persistWrite('bluetooth', 'true');
           persistWrite('battery', 'true');
           persistWrite('second_hand', 'true');
-          persistWrite('no_markers', 'false');
+          // persistWrite('no_markers', 'false');
         }
       }
 
@@ -67,7 +67,7 @@
         document.getElementById('check_bluetooth').checked = persistRead('bluetooth', 'false') === 'true';
         document.getElementById('check_battery').checked = persistRead('battery', 'false') === 'true';
         document.getElementById('check_second_hand').checked = persistRead('second_hand', 'false') === 'true';
-        document.getElementById('check_no_markers').checked = persistRead('no_markers', 'false') === 'true';
+        // document.getElementById('check_no_markers').checked = persistRead('no_markers', 'false') === 'true';
       }
 
       function ajax(url, type, callback) {
@@ -123,8 +123,8 @@
             'day': document.getElementById('check_day').checked ? 'true' : 'false',
             'bluetooth': document.getElementById('check_bluetooth').checked ? 'true' : 'false',
             'battery': document.getElementById('check_battery').checked ? 'true' : 'false',
-            'second_hand': document.getElementById('check_second_hand').checked ? 'true' : 'false',
-            'no_markers': document.getElementById('check_no_markers').checked ? 'true' : 'false'
+            'second_hand': document.getElementById('check_second_hand').checked ? 'true' : 'false'
+            // 'no_markers': document.getElementById('check_no_markers').checked ? 'true' : 'false'
           };  
 
           persistWrite('date', options.date);
@@ -132,7 +132,7 @@
           persistWrite('bluetooth', options.bluetooth);
           persistWrite('battery', options.battery);
           persistWrite('second_hand', options.second_hand);
-          persistWrite('no_markers', options.no_markers);
+          // persistWrite('no_markers', options.no_markers);
 
           // Set the return URL depending on the runtime environment
           var return_to = getQueryParam('return_to', 'pebblejs://close#');
