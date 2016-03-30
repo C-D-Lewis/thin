@@ -5,3 +5,4 @@ build
 .lock-*
 releases
 assets
+*.DS_Store

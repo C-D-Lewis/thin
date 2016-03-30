@@ -70,11 +70,7 @@ static void animation_started(Animation *anim, void *context) {
 static void animation_stopped(Animation *anim, bool stopped, void *context) {
   s_animating = false;
 
-  if(data_get(DataKeySecondHand)) {
-    tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
-  } else {
-    tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
-  }  
+  main_window_reload_config();
 }
 
 static void animate(int duration, int delay, AnimationImplementation *implementation, bool handlers) {
@@ -274,14 +270,6 @@ static void window_load(Window *window) {
   text_layer_set_text_color(s_month_layer, GColorWhite);
   text_layer_set_background_color(s_month_layer, GColorClear);
 
-  if(data_get(DataKeyDay)) {
-    layer_add_child(window_layer, text_layer_get_layer(s_day_in_month_layer));
-  }
-  if(data_get(DataKeyDate)) {
-    layer_add_child(window_layer, text_layer_get_layer(s_weekday_layer));
-    layer_add_child(window_layer, text_layer_get_layer(s_month_layer));
-  }
-
   s_canvas_layer = layer_create(bounds);
   layer_set_update_proc(s_canvas_layer, draw_proc);
   layer_add_child(window_layer, s_canvas_layer);
@@ -322,27 +310,52 @@ void main_window_push() {
   });
   window_stack_push(s_main_window, true);
 
-  battery_state_service_subscribe(batt_handler);
-
   time_t t = time(NULL);
   struct tm *tm_now = localtime(&t);
   s_current_time.hours = tm_now->tm_hour;
   s_current_time.minutes = tm_now->tm_min;
   s_current_time.seconds = tm_now->tm_sec;  
 
-  if(data_get(DataKeyBT)) {
-    bluetooth_connection_service_subscribe(bt_handler);
-    bt_handler(bluetooth_connection_service_peek());
-  }
-
   // Begin smooth animation
   static AnimationImplementation hands_impl = {
     .update = hands_update
   };
   animate(ANIMATION_DURATION, ANIMATION_DELAY, &hands_impl, true);
+
+  main_window_reload_config();
 }
 
 void main_window_reload_config() {
+  tick_timer_service_unsubscribe();
+  if(data_get(DataKeySecondHand)) {
+    tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
+  } else {
+    tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
+  }  
 
+  connection_service_unsubscribe();
+  if(data_get(DataKeyBT)) {
+    connection_service_subscribe((ConnectionHandlers) {
+      .pebble_app_connection_handler = bt_handler
+    });
+    bt_handler(connection_service_peek_pebble_app_connection());
+  }
+
+  battery_state_service_unsubscribe();
+  if(data_get(DataKeyBattery)) {
+    battery_state_service_subscribe(batt_handler);
+  }
+
+  Layer *window_layer = window_get_root_layer(s_main_window);
+  layer_remove_from_parent(text_layer_get_layer(s_day_in_month_layer));
+  layer_remove_from_parent(text_layer_get_layer(s_weekday_layer));
+  layer_remove_from_parent(text_layer_get_layer(s_month_layer));
+  if(data_get(DataKeyDay)) {
+    layer_add_child(window_layer, text_layer_get_layer(s_day_in_month_layer));
+  }
+  if(data_get(DataKeyDate)) {
+    layer_add_child(window_layer, text_layer_get_layer(s_weekday_layer));
+    layer_add_child(window_layer, text_layer_get_layer(s_month_layer));
+  }
 }
 

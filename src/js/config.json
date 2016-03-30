@@ -35,7 +35,7 @@
       },
       {
         "type": "toggle",
-        "label": "Show battery level",
+        "label": "Show battery level (hour markers)",
         "appKey": "DataKeyBattery",
         "defaultValue": true
       },
