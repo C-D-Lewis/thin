@@ -240,6 +240,8 @@ static void draw_proc(Layer *layer, GContext *ctx) {
   }
 }
 
+/*********************************** Window ***********************************/
+
 static void window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
@@ -297,6 +299,8 @@ static void hands_update(Animation *anim, AnimationProgress dist_normalized) {
   layer_mark_dirty(s_canvas_layer);
 }
 
+/************************************ API *************************************/
+
 void main_window_push() {
   s_main_window = window_create();
   window_set_background_color(s_main_window, GColorBlack);
@@ -321,7 +325,7 @@ void main_window_reload_config() {
   s_current_time.hours = tm_now->tm_hour;
   s_current_time.minutes = tm_now->tm_min;
   s_current_time.seconds = tm_now->tm_sec;  
-  
+
   tick_timer_service_unsubscribe();
   if(data_get(DataKeySecondHand)) {
     tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
