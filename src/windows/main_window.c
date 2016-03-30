@@ -1,34 +1,67 @@
 #include "main_window.h"
 
+#define MARGIN             5
+#define THICKNESS          3
+#define ANIMATION_DELAY    300
+#define ANIMATION_DURATION 1000
+#define HAND_LENGTH_SEC    65
+#define HAND_LENGTH_MIN    HAND_LENGTH_SEC
+#define HAND_LENGTH_HOUR   (HAND_LENGTH_SEC - 20)
+
+typedef struct {
+  int days;
+  int hours;
+  int minutes;
+  int seconds;
+} SimpleTime;
+
 static Window *s_main_window;
 static TextLayer *s_weekday_layer, *s_day_in_month_layer, *s_month_layer;
 static Layer *s_canvas_layer, *s_bg_layer;
 
-static Time s_last_time, s_anim_time;
-static char s_weekday_buffer[8], s_month_buffer[8], s_day_in_month_buffer[3];
-static bool s_animating, s_connected;
+// One each of these to represent the current time and an animated pseudo-time
+static SimpleTime s_current_time, s_anim_time;
+
+static char s_weekday_buffer[8], s_month_buffer[8], s_day_buffer[3];
+static bool s_animating, s_is_connected;
+
+/******************************* Event Services *******************************/
 
 static void tick_handler(struct tm *tick_time, TimeUnits changed) {
-  s_last_time.days = tick_time->tm_mday;
-  s_last_time.hours = tick_time->tm_hour;
-  s_last_time.minutes = tick_time->tm_min;
-  s_last_time.seconds = tick_time->tm_sec;
+  s_current_time.days = tick_time->tm_mday;
+  s_current_time.hours = tick_time->tm_hour;
+  s_current_time.minutes = tick_time->tm_min;
+  s_current_time.seconds = tick_time->tm_sec;
 
-  s_last_time.hours -= (s_last_time.hours > 12) ? 12 : 0;
+  s_current_time.hours -= (s_current_time.hours > 12) ? 12 : 0;
 
-  snprintf(s_day_in_month_buffer, sizeof(s_day_in_month_buffer), "%d", s_last_time.days);
+  snprintf(s_day_buffer, sizeof(s_day_buffer), "%d", s_current_time.days);
   strftime(s_weekday_buffer, sizeof(s_weekday_buffer), "%a", tick_time);
   strftime(s_month_buffer, sizeof(s_month_buffer), "%b", tick_time);
 
   text_layer_set_text(s_weekday_layer, s_weekday_buffer);
-  text_layer_set_text(s_day_in_month_layer, s_day_in_month_buffer);
+  text_layer_set_text(s_day_in_month_layer, s_day_buffer);
   text_layer_set_text(s_month_layer, s_month_buffer);
 
   // Finally
   layer_mark_dirty(s_canvas_layer);
 }
 
-/****************************** AnimationImplementation ***********************/
+static void bt_handler(bool connected) {
+  // Notify disconnection
+  if(!connected && s_is_connected) {
+    vibes_long_pulse();
+  }
+
+  s_is_connected = connected;
+  layer_mark_dirty(s_canvas_layer);
+}
+
+static void batt_handler(BatteryChargeState state) {
+  layer_mark_dirty(s_canvas_layer);
+}
+
+/************************** AnimationImplementation ***************************/
 
 static void animation_started(Animation *anim, void *context) {
   s_animating = true;
@@ -37,15 +70,11 @@ static void animation_started(Animation *anim, void *context) {
 static void animation_stopped(Animation *anim, bool stopped, void *context) {
   s_animating = false;
 
-  if(config_get(PERSIST_KEY_SECOND_HAND)) {
+  if(data_get(DataKeySecondHand)) {
     tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
   } else {
     tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
   }  
-
-#ifdef PBL_SDK_2
-  animation_destroy(anim);
-#endif
 }
 
 static void animate(int duration, int delay, AnimationImplementation *implementation, bool handlers) {
@@ -71,11 +100,6 @@ static void bg_update_proc(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
   GPoint center = grect_center_point(&bounds);
 
-  if(config_get(PERSIST_KEY_NO_MARKERS)) { 
-    // Don't draw anything here
-    return;
-  }
-
   BatteryChargeState state = battery_state_service_peek();
   bool plugged = state.is_plugged;
   int perc = state.charge_percent;
@@ -89,7 +113,7 @@ static void bg_update_proc(Layer *layer, GContext *ctx) {
           .y = (int16_t)(-cos_lookup(TRIG_MAX_ANGLE * h / 12) * (int32_t)(3 * HAND_LENGTH_SEC) / TRIG_MAX_RATIO) + center.y,
         };
 
-        if(config_get(PERSIST_KEY_BATTERY)) {
+        if(data_get(DataKeyBattery)) {
           if(h < batt_hours) {
 #ifdef PBL_COLOR
             if(plugged) {
@@ -132,25 +156,19 @@ static GPoint make_hand_point(int quantity, int intervals, int len, GPoint cente
 }
 
 static int hours_to_minutes(int hours_out_of_12) {
-  return (int)(float)(((float)hours_out_of_12 / 12.0F) * 60.0F);
+  // return (int)(float)(((float)hours_out_of_12 / 12.0F) * 60.0F);
+  return (hours_out_of_12 * 60) / 12;
 }
 
 static void draw_proc(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
   GPoint center = grect_center_point(&bounds);  
 
-  Time mode_time = (s_animating) ? s_anim_time : s_last_time;
+  SimpleTime mode_time = (s_animating) ? s_anim_time : s_current_time;
 
   int len_sec = HAND_LENGTH_SEC;
   int len_min = HAND_LENGTH_MIN;
   int len_hour = HAND_LENGTH_HOUR;
-
-  // Longer when no markers?
-  if(config_get(PERSIST_KEY_NO_MARKERS)) { 
-    len_sec += 20;
-    len_min += 20;
-    len_hour += 20;
-  }
 
   // Plot hand ends
   GPoint second_hand_long = make_hand_point(mode_time.seconds, 60, len_sec, center);
@@ -202,7 +220,7 @@ static void draw_proc(Layer *layer, GContext *ctx) {
   }
 
   // Draw second hand
-  if(config_get(PERSIST_KEY_SECOND_HAND)) {
+  if(data_get(DataKeySecondHand)) {
     // Use loops
     for(int y = 0; y < THICKNESS - 1; y++) {
       for(int x = 0; x < THICKNESS - 1; x++) {
@@ -221,24 +239,10 @@ static void draw_proc(Layer *layer, GContext *ctx) {
   graphics_fill_circle(ctx, GPoint(center.x + 1, center.y + 1), 4);
 
   // Draw black if disconnected
-  if(config_get(PERSIST_KEY_BT) && !s_connected) {
+  if(data_get(DataKeyBT) && !s_is_connected) {
     graphics_context_set_fill_color(ctx, GColorBlack);
     graphics_fill_circle(ctx, GPoint(center.x + 1, center.y + 1), 3);
   }
-}
-
-static void bt_handler(bool connected) {
-  // Notify disconnection
-  if(!connected && s_connected) {
-    vibes_long_pulse();
-  }
-
-  s_connected = connected;
-  layer_mark_dirty(s_canvas_layer);
-}
-
-static void batt_handler(BatteryChargeState state) {
-  layer_mark_dirty(s_canvas_layer);
 }
 
 static void window_load(Window *window) {
@@ -249,30 +253,31 @@ static void window_load(Window *window) {
   layer_set_update_proc(s_bg_layer, bg_update_proc);
   layer_add_child(window_layer, s_bg_layer);
 
-  int x = (int)((float)bounds.size.w * (config_get(PERSIST_KEY_NO_MARKERS) ? 0.68F : 0.625F));
+  // int x_offset = (int)((float)bounds.size.w * 0.625F));
+  int x_offset = (bounds.size.w * 62) / 100;
 
-  s_weekday_layer = text_layer_create(GRect(x, 55, 44, 40));
+  s_weekday_layer = text_layer_create(GRect(x_offset, 55, 44, 40));
   text_layer_set_text_alignment(s_weekday_layer, GTextAlignmentCenter);
   text_layer_set_font(s_weekday_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD));
   text_layer_set_text_color(s_weekday_layer, GColorWhite);
   text_layer_set_background_color(s_weekday_layer, GColorClear);
 
-  s_day_in_month_layer = text_layer_create(GRect(x, 68, 44, 40));
+  s_day_in_month_layer = text_layer_create(GRect(x_offset, 68, 44, 40));
   text_layer_set_text_alignment(s_day_in_month_layer, GTextAlignmentCenter);
   text_layer_set_font(s_day_in_month_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
   text_layer_set_text_color(s_day_in_month_layer, PBL_IF_COLOR_ELSE(GColorChromeYellow, GColorWhite));
   text_layer_set_background_color(s_day_in_month_layer, GColorClear);
 
-  s_month_layer = text_layer_create(GRect(x, 95, 44, 40));
+  s_month_layer = text_layer_create(GRect(x_offset, 95, 44, 40));
   text_layer_set_text_alignment(s_month_layer, GTextAlignmentCenter);
   text_layer_set_font(s_month_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD));
   text_layer_set_text_color(s_month_layer, GColorWhite);
   text_layer_set_background_color(s_month_layer, GColorClear);
 
-  if(config_get(PERSIST_KEY_DAY)) {
+  if(data_get(DataKeyDay)) {
     layer_add_child(window_layer, text_layer_get_layer(s_day_in_month_layer));
   }
-  if(config_get(PERSIST_KEY_DATE)) {
+  if(data_get(DataKeyDate)) {
     layer_add_child(window_layer, text_layer_get_layer(s_weekday_layer));
     layer_add_child(window_layer, text_layer_get_layer(s_month_layer));
   }
@@ -290,20 +295,20 @@ static void window_unload(Window *window) {
   text_layer_destroy(s_day_in_month_layer);
   text_layer_destroy(s_month_layer);
 
-  // Self destroying
   window_destroy(s_main_window);
 }
 
 static int anim_percentage(AnimationProgress dist_normalized, int max) {
-  return (int)(float)(((float)dist_normalized / (float)ANIMATION_NORMALIZED_MAX) * (float)max);
+  // return (int)(float)(((float)dist_normalized / (float)ANIMATION_NORMALIZED_MAX) * (float)max);
+  return (max * dist_normalized) / ANIMATION_NORMALIZED_MAX;
 }
 
 static void hands_update(Animation *anim, AnimationProgress dist_normalized) {
-  s_last_time.hours -= (s_last_time.hours > 12) ? 12 : 0;
+  s_current_time.hours -= (s_current_time.hours > 12) ? 12 : 0;
 
-  s_anim_time.hours = anim_percentage(dist_normalized, hours_to_minutes(s_last_time.hours));
-  s_anim_time.minutes = anim_percentage(dist_normalized, s_last_time.minutes);
-  s_anim_time.seconds = anim_percentage(dist_normalized, s_last_time.seconds);
+  s_anim_time.hours = anim_percentage(dist_normalized, hours_to_minutes(s_current_time.hours));
+  s_anim_time.minutes = anim_percentage(dist_normalized, s_current_time.minutes);
+  s_anim_time.seconds = anim_percentage(dist_normalized, s_current_time.seconds);
 
   layer_mark_dirty(s_canvas_layer);
 }
@@ -321,11 +326,11 @@ void main_window_push() {
 
   time_t t = time(NULL);
   struct tm *tm_now = localtime(&t);
-  s_last_time.hours = tm_now->tm_hour;
-  s_last_time.minutes = tm_now->tm_min;
-  s_last_time.seconds = tm_now->tm_sec;  
+  s_current_time.hours = tm_now->tm_hour;
+  s_current_time.minutes = tm_now->tm_min;
+  s_current_time.seconds = tm_now->tm_sec;  
 
-  if(config_get(PERSIST_KEY_BT)) {
+  if(data_get(DataKeyBT)) {
     bluetooth_connection_service_subscribe(bt_handler);
     bt_handler(bluetooth_connection_service_peek());
   }
@@ -336,3 +341,8 @@ void main_window_push() {
   };
   animate(ANIMATION_DURATION, ANIMATION_DELAY, &hands_impl, true);
 }
+
+void main_window_reload_config() {
+
+}
+
