@@ -3,8 +3,8 @@
   "shortName": "Thin",
   "longName": "Thin",
   "companyName": "Chris Lewis",
-  "versionCode": 6,
-  "versionLabel": "1.7",
+  "versionCode": 7,
+  "versionLabel": "1.8",
   "sdkVersion": "3",
   "targetPlatforms": [
     "aplite",
@@ -15,17 +15,17 @@
     "watchface": true
   },
   "appKeys": {
-    "PERSIST_KEY_DATE": 0,
-    "PERSIST_KEY_DAY": 1,
-    "PERSIST_KEY_BT": 2,
-    "PERSIST_KEY_BATTERY": 3,
-    "PERSIST_KEY_SECOND_HAND": 4,
-    "PERSIST_KEY_NO_MARKERS": 5
+    "DataKeyDate": 0,
+    "DataKeyDay": 1,
+    "DataKeyBT": 2,
+    "DataKeyBattery": 3,
+    "DataKeySecondHand": 4
   },
   "resources": {
     "media": []
   },
   "capabilities": [
     "configurable"
-  ]
+  ],
+  "enableMultiJS": true
 }
