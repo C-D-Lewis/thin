@@ -152,7 +152,6 @@ static GPoint make_hand_point(int quantity, int intervals, int len, GPoint cente
 }
 
 static int hours_to_minutes(int hours_out_of_12) {
-  // return (int)(float)(((float)hours_out_of_12 / 12.0F) * 60.0F);
   return (hours_out_of_12 * 60) / 12;
 }
 
@@ -249,7 +248,6 @@ static void window_load(Window *window) {
   layer_set_update_proc(s_bg_layer, bg_update_proc);
   layer_add_child(window_layer, s_bg_layer);
 
-  // int x_offset = (int)((float)bounds.size.w * 0.625F));
   int x_offset = (bounds.size.w * 62) / 100;
 
   s_weekday_layer = text_layer_create(GRect(x_offset, 55, 44, 40));
@@ -272,7 +270,6 @@ static void window_load(Window *window) {
 
   s_canvas_layer = layer_create(bounds);
   layer_set_update_proc(s_canvas_layer, draw_proc);
-  layer_add_child(window_layer, s_canvas_layer);
 }
 
 static void window_unload(Window *window) {
@@ -287,7 +284,6 @@ static void window_unload(Window *window) {
 }
 
 static int anim_percentage(AnimationProgress dist_normalized, int max) {
-  // return (int)(float)(((float)dist_normalized / (float)ANIMATION_NORMALIZED_MAX) * (float)max);
   return (max * dist_normalized) / ANIMATION_NORMALIZED_MAX;
 }
 
@@ -310,12 +306,6 @@ void main_window_push() {
   });
   window_stack_push(s_main_window, true);
 
-  time_t t = time(NULL);
-  struct tm *tm_now = localtime(&t);
-  s_current_time.hours = tm_now->tm_hour;
-  s_current_time.minutes = tm_now->tm_min;
-  s_current_time.seconds = tm_now->tm_sec;  
-
   // Begin smooth animation
   static AnimationImplementation hands_impl = {
     .update = hands_update
@@ -326,6 +316,12 @@ void main_window_push() {
 }
 
 void main_window_reload_config() {
+  time_t t = time(NULL);
+  struct tm *tm_now = localtime(&t);
+  s_current_time.hours = tm_now->tm_hour;
+  s_current_time.minutes = tm_now->tm_min;
+  s_current_time.seconds = tm_now->tm_sec;  
+  
   tick_timer_service_unsubscribe();
   if(data_get(DataKeySecondHand)) {
     tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
@@ -357,5 +353,6 @@ void main_window_reload_config() {
     layer_add_child(window_layer, text_layer_get_layer(s_weekday_layer));
     layer_add_child(window_layer, text_layer_get_layer(s_month_layer));
   }
+  layer_add_child(window_layer, s_canvas_layer);
 }
 
