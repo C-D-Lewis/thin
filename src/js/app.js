@@ -1,4 +1,4 @@
-var VERSION = '1.8';
+var VERSION = '1.9';
 
 var Clay = require('clay');
 var clayConfig = require('config.json');
