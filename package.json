@@ -1,0 +1,40 @@
+{
+  "version": "1.9.0",
+  "author": "Chris Lewis",
+  "private": true,
+  "dependencies": {},
+  "keywords": [
+    "pebble-app"
+  ],
+  "pebble": {
+    "sdkVersion": "3",
+    "resources": {
+      "media": []
+    },
+    "projectType": "native",
+    "uuid": "09988afe-adbb-4941-a126-9b2c92aea311",
+    "messageKeys": {
+      "DataKeyBattery": 3,
+      "DataKeySecondHand": 4,
+      "DataKeyDate": 0,
+      "DataKeyDay": 1,
+      "DataKeyBT": 2
+    },
+    "enableMultiJS": true,
+    "displayName": "Thin",
+    "watchapp": {
+      "onlyShownOnCommunication": false,
+      "hiddenApp": false,
+      "watchface": true
+    },
+    "targetPlatforms": [
+      "aplite",
+      "basalt",
+      "chalk"
+    ],
+    "capabilities": [
+      "configurable"
+    ]
+  },
+  "name": "Thin"
+}
