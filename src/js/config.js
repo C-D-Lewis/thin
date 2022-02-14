@@ -1,4 +1,4 @@
-[
+module.exports = [
   { 
     "type": "heading", 
     "defaultValue": "Thin Configuration" ,
@@ -18,31 +18,31 @@
       {
         "type": "toggle",
         "label": "Show weekday and month",
-        "appKey": "DataKeyDate",
+        "messageKey": "DataKeyDate",
         "defaultValue": true
       },
       {
         "type": "toggle",
         "label": "Show day of the month",
-        "appKey": "DataKeyDay",
+        "messageKey": "DataKeyDay",
         "defaultValue": true
       },
       {
         "type": "toggle",
         "label": "Show disconnected indicator",
-        "appKey": "DataKeyBT",
+        "messageKey": "DataKeyBT",
         "defaultValue": true
       },
       {
         "type": "toggle",
         "label": "Show battery level (hour markers)",
-        "appKey": "DataKeyBattery",
+        "messageKey": "DataKeyBattery",
         "defaultValue": true
       },
       {
         "type": "toggle",
         "label": "Show second hand (uses more power)",
-        "appKey": "DataKeySecondHand",
+        "messageKey": "DataKeySecondHand",
         "defaultValue": true
       }
     ]
