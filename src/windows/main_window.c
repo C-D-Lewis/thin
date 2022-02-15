@@ -16,15 +16,16 @@ typedef struct {
 } SimpleTime;
 
 static Window *s_main_window;
-static TextLayer *s_weekday_layer, *s_day_in_month_layer, *s_month_layer;
+static TextLayer *s_weekday_layer, *s_day_in_month_layer, *s_month_layer, *s_step_layer;
 static Layer *s_canvas_layer, *s_bg_layer;
 
 // One each of these to represent the current time and an animated pseudo-time
 static SimpleTime s_current_time, s_anim_time;
 
-static char s_weekday_buffer[8], s_month_buffer[8], s_day_buffer[3];
+static char s_weekday_buffer[8], s_month_buffer[8], s_day_buffer[3], s_current_steps_buffer[16];
 static bool s_animating, s_is_connected;
 
+static int s_step_count = 0;
 /******************************* Event Services *******************************/
 
 static void tick_handler(struct tm *tick_time, TimeUnits changed) {
@@ -39,9 +40,18 @@ static void tick_handler(struct tm *tick_time, TimeUnits changed) {
   strftime(s_weekday_buffer, sizeof(s_weekday_buffer), "%a", tick_time);
   strftime(s_month_buffer, sizeof(s_month_buffer), "%b", tick_time);
 
+  int thousands = s_step_count / 1000;
+  int hundreds = s_step_count % 1000;
+  if (thousands > 0) {
+    snprintf(s_current_steps_buffer, sizeof(s_current_steps_buffer), "%d,%03d", thousands, hundreds);
+  } else {
+    snprintf(s_current_steps_buffer, sizeof(s_current_steps_buffer), "%d", hundreds);
+  }
+
   text_layer_set_text(s_weekday_layer, s_weekday_buffer);
   text_layer_set_text(s_day_in_month_layer, s_day_buffer);
   text_layer_set_text(s_month_layer, s_month_buffer);
+  text_layer_set_text(s_step_layer, s_current_steps_buffer);
 
   // Finally
   layer_mark_dirty(s_canvas_layer);
@@ -61,6 +71,17 @@ static void batt_handler(BatteryChargeState state) {
   layer_mark_dirty(s_canvas_layer);
 }
 
+bool step_data_is_available() {
+  return HealthServiceAccessibilityMaskAvailable &
+    health_service_metric_accessible(HealthMetricStepCount,
+      time_start_of_today(), time(NULL));
+}
+
+static void health_handler(HealthEventType event, void *context) {
+  if(event != HealthEventSleepUpdate) {
+    s_step_count = (int)health_service_sum_today(HealthMetricStepCount);
+  }
+}
 /************************** AnimationImplementation ***************************/
 
 static void animation_started(Animation *anim, void *context) {
@@ -270,6 +291,12 @@ static void window_load(Window *window) {
   text_layer_set_text_color(s_month_layer, GColorWhite);
   text_layer_set_background_color(s_month_layer, GColorClear);
 
+  s_step_layer = text_layer_create(GRect(38, 120, 64, 40));
+  text_layer_set_text_alignment(s_step_layer, GTextAlignmentCenter);
+  text_layer_set_font(s_step_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+  text_layer_set_text_color(s_step_layer, GColorWhite);
+  text_layer_set_background_color(s_step_layer, GColorClear);
+
   s_canvas_layer = layer_create(bounds);
   layer_set_update_proc(s_canvas_layer, draw_proc);
 }
@@ -281,6 +308,7 @@ static void window_unload(Window *window) {
   text_layer_destroy(s_weekday_layer);
   text_layer_destroy(s_day_in_month_layer);
   text_layer_destroy(s_month_layer);
+  text_layer_destroy(s_step_layer);
 
   window_destroy(s_main_window);
 }
@@ -341,6 +369,11 @@ void main_window_reload_config() {
     bt_handler(connection_service_peek_pebble_app_connection());
   }
 
+  health_service_events_unsubscribe();
+  if(step_data_is_available()) {
+    health_service_events_subscribe(health_handler, NULL);
+  }
+
   battery_state_service_unsubscribe();
   if(data_get(DataKeyBattery)) {
     battery_state_service_subscribe(batt_handler);
@@ -350,6 +383,7 @@ void main_window_reload_config() {
   layer_remove_from_parent(text_layer_get_layer(s_day_in_month_layer));
   layer_remove_from_parent(text_layer_get_layer(s_weekday_layer));
   layer_remove_from_parent(text_layer_get_layer(s_month_layer));
+  layer_remove_from_parent(text_layer_get_layer(s_step_layer));
   if(data_get(DataKeyDay)) {
     layer_add_child(window_layer, text_layer_get_layer(s_day_in_month_layer));
   }
@@ -357,6 +391,8 @@ void main_window_reload_config() {
     layer_add_child(window_layer, text_layer_get_layer(s_weekday_layer));
     layer_add_child(window_layer, text_layer_get_layer(s_month_layer));
   }
+  layer_add_child(window_layer, text_layer_get_layer(s_step_layer));
+
   layer_add_child(window_layer, s_canvas_layer);
 }
 
