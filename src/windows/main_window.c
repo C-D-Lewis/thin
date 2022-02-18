@@ -25,7 +25,6 @@ static SimpleTime s_current_time, s_anim_time;
 static char s_weekday_buffer[8], s_month_buffer[8], s_day_buffer[3], s_current_steps_buffer[16];
 static bool s_animating, s_is_connected;
 
-static int s_step_count = 0;
 /******************************* Event Services *******************************/
 
 static void tick_handler(struct tm *tick_time, TimeUnits changed) {
@@ -40,7 +39,7 @@ static void tick_handler(struct tm *tick_time, TimeUnits changed) {
   strftime(s_weekday_buffer, sizeof(s_weekday_buffer), "%a", tick_time);
   strftime(s_month_buffer, sizeof(s_month_buffer), "%b", tick_time);
   
-  int steps = s_step_count;
+  int steps = get_step_count();
   memset(s_current_steps_buffer, 0, strlen(s_current_steps_buffer));
   while (steps > 0) {
     int digit = steps % 10;
@@ -74,18 +73,6 @@ static void batt_handler(BatteryChargeState state) {
   layer_mark_dirty(s_canvas_layer);
 }
 
-bool step_data_is_available() {
-  return HealthServiceAccessibilityMaskAvailable &
-    health_service_metric_accessible(HealthMetricStepCount,
-      time_start_of_today(), time(NULL));
-}
-
-static void health_handler(HealthEventType event, void *context) {
-  if(event != HealthEventSleepUpdate) {
-    s_step_count = (int)health_service_sum_today(HealthMetricStepCount);
-    s_step_count = 8922;
-  }
-}
 /************************** AnimationImplementation ***************************/
 
 static void animation_started(Animation *anim, void *context) {
@@ -295,24 +282,23 @@ static void window_load(Window *window) {
   text_layer_set_text_color(s_month_layer, GColorWhite);
   text_layer_set_background_color(s_month_layer, GColorClear);
 
+  int length = 0;
   if (step_data_is_available()) {
-    s_step_count = (int)health_service_sum_today(HealthMetricStepCount);
-    
     // Determine the length of steps so we can vertically center the step count
-    int steps = s_step_count;
+    int steps = get_step_count();
     steps = 8922;
-    int length = 0;
+    length = 0;
     while (steps > 0) {
       steps /= 10;
       length++;
     }
-
-    s_step_layer = text_layer_create(GRect(bounds.size.w - (x_offset+44), 72 - (length-1)*9 , 44, 90));
-    text_layer_set_text_alignment(s_step_layer, GTextAlignmentCenter);
-    text_layer_set_font(s_step_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-    text_layer_set_text_color(s_step_layer, GColorWhite);
-    text_layer_set_background_color(s_step_layer, GColorClear);
   }
+
+  s_step_layer = text_layer_create(GRect(bounds.size.w - (x_offset+44), 72 - (length-1)*9 , 44, 90));
+  text_layer_set_text_alignment(s_step_layer, GTextAlignmentCenter);
+  text_layer_set_font(s_step_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+  text_layer_set_text_color(s_step_layer, GColorWhite);
+  text_layer_set_background_color(s_step_layer, GColorClear);
 
   s_canvas_layer = layer_create(bounds);
   layer_set_update_proc(s_canvas_layer, draw_proc);
@@ -386,13 +372,6 @@ void main_window_reload_config() {
     bt_handler(connection_service_peek_pebble_app_connection());
   }
 
-  health_service_events_unsubscribe();
-  if(data_get(DataKeySteps)) {
-    if(step_data_is_available()) {
-      health_service_events_subscribe(health_handler, NULL);
-    }
-  }
-
   battery_state_service_unsubscribe();
   if(data_get(DataKeyBattery)) {
     battery_state_service_subscribe(batt_handler);
@@ -410,7 +389,7 @@ void main_window_reload_config() {
     layer_add_child(window_layer, text_layer_get_layer(s_weekday_layer));
     layer_add_child(window_layer, text_layer_get_layer(s_month_layer));
   }
-  if(data_get(DataKeySteps)) {
+  if(data_get(DataKeySteps) && is_health_available()) {
     layer_add_child(window_layer, text_layer_get_layer(s_step_layer));
   }
 
