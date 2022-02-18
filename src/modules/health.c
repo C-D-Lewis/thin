@@ -6,7 +6,6 @@ static int s_step_count = 0;
 static void health_handler(HealthEventType event, void *context) {
   if(event != HealthEventSleepUpdate) {
     s_step_count = (int)health_service_sum_today(HealthMetricStepCount);
-    s_step_count = 8922;
   }
 }
 
