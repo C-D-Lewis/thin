@@ -8,6 +8,7 @@ typedef enum {
   DataKeyBT,
   DataKeyBattery,
   DataKeySecondHand,
+  DataKeySteps,
 
   DataKeyCount
 } DataKey;

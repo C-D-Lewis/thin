@@ -20,7 +20,8 @@
       "DataKeySecondHand": 4,
       "DataKeyDate": 0,
       "DataKeyDay": 1,
-      "DataKeyBT": 2
+      "DataKeyBT": 2,
+      "DataKeySteps": 5
     },
     "enableMultiJS": true,
     "displayName": "Thin",

@@ -13,6 +13,7 @@ void data_init() {
     s_arr[DataKeyBT] = true;
     s_arr[DataKeyBattery] = true;
     s_arr[DataKeySecondHand] = true;
+    s_arr[DataKeySteps] = true;
   } else {
     // Read previously stored values
     for(int i = 0; i < DataKeyCount; i++) {

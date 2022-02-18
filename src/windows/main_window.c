@@ -370,8 +370,10 @@ void main_window_reload_config() {
   }
 
   health_service_events_unsubscribe();
-  if(step_data_is_available()) {
-    health_service_events_subscribe(health_handler, NULL);
+  if(data_get(DataKeySteps)) {
+    if(step_data_is_available()) {
+      health_service_events_subscribe(health_handler, NULL);
+    }
   }
 
   battery_state_service_unsubscribe();
@@ -391,7 +393,9 @@ void main_window_reload_config() {
     layer_add_child(window_layer, text_layer_get_layer(s_weekday_layer));
     layer_add_child(window_layer, text_layer_get_layer(s_month_layer));
   }
-  layer_add_child(window_layer, text_layer_get_layer(s_step_layer));
+  if(data_get(DataKeySteps)) {
+    layer_add_child(window_layer, text_layer_get_layer(s_step_layer));
+  }
 
   layer_add_child(window_layer, s_canvas_layer);
 }
