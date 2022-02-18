@@ -39,13 +39,16 @@ static void tick_handler(struct tm *tick_time, TimeUnits changed) {
   snprintf(s_day_buffer, sizeof(s_day_buffer), "%d", s_current_time.days);
   strftime(s_weekday_buffer, sizeof(s_weekday_buffer), "%a", tick_time);
   strftime(s_month_buffer, sizeof(s_month_buffer), "%b", tick_time);
-
-  int thousands = s_step_count / 1000;
-  int hundreds = s_step_count % 1000;
-  if (thousands > 0) {
-    snprintf(s_current_steps_buffer, sizeof(s_current_steps_buffer), "%d,%03d", thousands, hundreds);
-  } else {
-    snprintf(s_current_steps_buffer, sizeof(s_current_steps_buffer), "%d", hundreds);
+  
+  int steps = s_step_count;
+  memset(s_current_steps_buffer, 0, strlen(s_current_steps_buffer));
+  while (steps > 0) {
+    int digit = steps % 10;
+    steps = steps / 10;
+    char buffer[4];
+    snprintf(buffer, sizeof(buffer), "%d\n", digit);
+    strcat(buffer, s_current_steps_buffer);
+    strcpy(s_current_steps_buffer, buffer);
   }
 
   text_layer_set_text(s_weekday_layer, s_weekday_buffer);
@@ -291,11 +294,23 @@ static void window_load(Window *window) {
   text_layer_set_text_color(s_month_layer, GColorWhite);
   text_layer_set_background_color(s_month_layer, GColorClear);
 
-  s_step_layer = text_layer_create(GRect(38, 120, 64, 40));
-  text_layer_set_text_alignment(s_step_layer, GTextAlignmentCenter);
+  if (step_data_is_available()) {
+    s_step_count = (int)health_service_sum_today(HealthMetricStepCount);
+    
+    // Determine the length of steps so we can vertically center the step count
+    int steps = s_step_count;
+    int length = 0;
+    while (steps > 0) {
+      steps /= 10;
+      length++;
+    }
+
+  s_step_layer = text_layer_create(GRect(24, 72 - (length-1)*9 , 8, 90));
+  text_layer_set_text_alignment(s_step_layer, GTextAlignmentLeft);
   text_layer_set_font(s_step_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
   text_layer_set_text_color(s_step_layer, GColorWhite);
   text_layer_set_background_color(s_step_layer, GColorClear);
+  }
 
   s_canvas_layer = layer_create(bounds);
   layer_set_update_proc(s_canvas_layer, draw_proc);
