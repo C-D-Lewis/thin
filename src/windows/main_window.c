@@ -83,6 +83,7 @@ bool step_data_is_available() {
 static void health_handler(HealthEventType event, void *context) {
   if(event != HealthEventSleepUpdate) {
     s_step_count = (int)health_service_sum_today(HealthMetricStepCount);
+    s_step_count = 8922;
   }
 }
 /************************** AnimationImplementation ***************************/
@@ -299,17 +300,18 @@ static void window_load(Window *window) {
     
     // Determine the length of steps so we can vertically center the step count
     int steps = s_step_count;
+    steps = 8922;
     int length = 0;
     while (steps > 0) {
       steps /= 10;
       length++;
     }
 
-  s_step_layer = text_layer_create(GRect(24, 72 - (length-1)*9 , 8, 90));
-  text_layer_set_text_alignment(s_step_layer, GTextAlignmentLeft);
-  text_layer_set_font(s_step_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-  text_layer_set_text_color(s_step_layer, GColorWhite);
-  text_layer_set_background_color(s_step_layer, GColorClear);
+    s_step_layer = text_layer_create(GRect(bounds.size.w - (x_offset+44), 72 - (length-1)*9 , 44, 90));
+    text_layer_set_text_alignment(s_step_layer, GTextAlignmentCenter);
+    text_layer_set_font(s_step_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+    text_layer_set_text_color(s_step_layer, GColorWhite);
+    text_layer_set_background_color(s_step_layer, GColorClear);
   }
 
   s_canvas_layer = layer_create(bounds);
