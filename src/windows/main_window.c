@@ -286,7 +286,6 @@ static void window_load(Window *window) {
   if (step_data_is_available()) {
     // Determine the length of steps so we can vertically center the step count
     int steps = get_step_count();
-    steps = 8922;
     length = 0;
     while (steps > 0) {
       steps /= 10;

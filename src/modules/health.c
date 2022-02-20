@@ -11,6 +11,10 @@ static void health_handler(HealthEventType event, void *context) {
 
 void health_init() {
   s_health_available = health_service_events_subscribe(health_handler, NULL);
+
+  if (s_health_available) {
+      s_step_count = (int)health_service_sum_today(HealthMetricStepCount);
+  }
 }
 
 bool is_health_available() {
