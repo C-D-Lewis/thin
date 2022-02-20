@@ -293,7 +293,7 @@ static void window_load(Window *window) {
     }
   }
 
-  s_step_layer = text_layer_create(GRect(bounds.size.w - (x_offset+44), 72 - (length-1)*9 , 44, 90));
+  s_step_layer = text_layer_create(GRect(bounds.size.w - (x_offset+54), 72 - (length-1)*9 , 44, 90));
   text_layer_set_text_alignment(s_step_layer, GTextAlignmentCenter);
   text_layer_set_font(s_step_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
   text_layer_set_text_color(s_step_layer, GColorWhite);
