@@ -54,6 +54,7 @@ static void tick_handler(struct tm *tick_time, TimeUnits changed) {
   text_layer_set_text(s_day_in_month_layer, s_day_buffer);
   text_layer_set_text(s_month_layer, s_month_buffer);
   text_layer_set_text(s_step_layer, s_current_steps_buffer);
+  center_step_layer();
 
   // Finally
   layer_mark_dirty(s_canvas_layer);
@@ -282,18 +283,7 @@ static void window_load(Window *window) {
   text_layer_set_text_color(s_month_layer, GColorWhite);
   text_layer_set_background_color(s_month_layer, GColorClear);
 
-  int length = 0;
-  if (step_data_is_available()) {
-    // Determine the length of steps so we can vertically center the step count
-    int steps = get_step_count();
-    length = 0;
-    while (steps > 0) {
-      steps /= 10;
-      length++;
-    }
-  }
-
-  s_step_layer = text_layer_create(GRect(bounds.size.w - (x_offset+54), 72 - (length-1)*9 , 44, 90));
+  s_step_layer = text_layer_create(GRect(0, 0, 44, 90));
   text_layer_set_text_alignment(s_step_layer, GTextAlignmentCenter);
   text_layer_set_font(s_step_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
   text_layer_set_text_color(s_step_layer, GColorWhite);
@@ -327,6 +317,31 @@ static void hands_update(Animation *anim, AnimationProgress dist_normalized) {
   s_anim_time.seconds = anim_percentage(dist_normalized, s_current_time.seconds);
 
   layer_mark_dirty(s_canvas_layer);
+}
+
+static void center_step_layer() {
+  if (!data_get(DataKeySteps) || !is_health_available()) {
+    return;
+  }
+
+  Layer *step_layer_root = text_layer_get_layer(s_step_layer);
+  Layer *window_layer = window_get_root_layer(layer_get_window(step_layer_root));
+  GRect bounds = layer_get_bounds(window_layer);
+
+  int x_offset = (bounds.size.w * 62) / 100;
+
+  int length = 0;
+  if (step_data_is_available()) {
+    // Determine the length of steps so we can vertically center the step count
+    int steps = get_step_count();
+    length = 0;
+    while (steps > 0) {
+      steps /= 10;
+      length++;
+    }
+  }
+  
+  layer_set_frame(step_layer_root, GRect(bounds.size.w - (x_offset+54), 72 - (length-1)*9 , 44, 90));
 }
 
 /************************************ API *************************************/
