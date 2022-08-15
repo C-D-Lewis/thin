@@ -8,7 +8,11 @@ static void init() {
   setlocale(LC_ALL, "");
   comm_init();
   data_init();
-
+  
+  if (data_get(DataKeySteps)) {
+    health_init();
+  }
+  
   main_window_push();
 }
 

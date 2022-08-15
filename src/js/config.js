@@ -44,6 +44,12 @@ module.exports = [
         "label": "Show second hand (uses more power)",
         "messageKey": "DataKeySecondHand",
         "defaultValue": true
+      },
+      {
+        "type": "toggle",
+        "label": "Show step count",
+        "messageKey": "DataKeySteps",
+        "defaultValue": true
       }
     ]
   },
