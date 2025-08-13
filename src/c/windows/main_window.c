@@ -265,20 +265,21 @@ static void window_load(Window *window) {
   layer_add_child(window_layer, s_bg_layer);
 
   int x_offset = (bounds.size.w * 62) / 100;
+  int y_offset = (bounds.size.h / 2) - 33;
 
-  s_weekday_layer = text_layer_create(GRect(x_offset, 55, 44, 40));
+  s_weekday_layer = text_layer_create(GRect(x_offset, y_offset + 5, 44, 40));
   text_layer_set_text_alignment(s_weekday_layer, GTextAlignmentCenter);
   text_layer_set_font(s_weekday_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD));
   text_layer_set_text_color(s_weekday_layer, GColorWhite);
   text_layer_set_background_color(s_weekday_layer, GColorClear);
 
-  s_day_in_month_layer = text_layer_create(GRect(x_offset, 68, 44, 40));
+  s_day_in_month_layer = text_layer_create(GRect(x_offset, y_offset + 18, 44, 40));
   text_layer_set_text_alignment(s_day_in_month_layer, GTextAlignmentCenter);
   text_layer_set_font(s_day_in_month_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
   text_layer_set_text_color(s_day_in_month_layer, PBL_IF_COLOR_ELSE(GColorChromeYellow, GColorWhite));
   text_layer_set_background_color(s_day_in_month_layer, GColorClear);
 
-  s_month_layer = text_layer_create(GRect(x_offset, 95, 44, 40));
+  s_month_layer = text_layer_create(GRect(x_offset, y_offset + 45, 44, 40));
   text_layer_set_text_alignment(s_month_layer, GTextAlignmentCenter);
   text_layer_set_font(s_month_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD));
   text_layer_set_text_color(s_month_layer, GColorWhite);
