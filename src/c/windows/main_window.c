@@ -25,6 +25,8 @@ static SimpleTime s_current_time, s_anim_time;
 static char s_weekday_buffer[8], s_month_buffer[8], s_day_buffer[3], s_current_steps_buffer[16];
 static bool s_animating, s_is_connected;
 
+static void center_step_layer();
+
 /******************************* Event Services *******************************/
 
 static void tick_handler(struct tm *tick_time, TimeUnits changed) {
@@ -110,7 +112,6 @@ static void bg_update_proc(Layer *layer, GContext *ctx) {
   GPoint center = grect_center_point(&bounds);
 
   BatteryChargeState state = battery_state_service_peek();
-  bool plugged = state.is_plugged;
   int perc = state.charge_percent;
   int batt_hours = (int)(12.0F * ((float)perc / 100.0F)) + 1;
 
@@ -125,7 +126,7 @@ static void bg_update_proc(Layer *layer, GContext *ctx) {
         if(data_get(DataKeyBattery)) {
           if(h < batt_hours) {
 #ifdef PBL_COLOR
-            if(plugged) {
+            if(state.is_plugged) {
               // Charging
               graphics_context_set_stroke_color(ctx, GColorGreen);
             } else {

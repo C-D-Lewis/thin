@@ -1,5 +1,5 @@
 {
-  "version": "1.10.0",
+  "version": "1.11.0",
   "author": "Chris Lewis",
   "private": true,
   "dependencies": {
@@ -11,7 +11,14 @@
   "pebble": {
     "sdkVersion": "3",
     "resources": {
-      "media": []
+      "media": [
+        {
+          "menuIcon": true,
+          "type": "bitmap",
+          "name": "MENU_ICON",
+          "file": "images/menu_icon.png"
+        }
+      ]
     },
     "projectType": "native",
     "uuid": "09988afe-adbb-4941-a126-9b2c92aea311",
@@ -39,5 +46,5 @@
       "configurable"
     ]
   },
-  "name": "Thin"
+  "name": "thin"
 }
